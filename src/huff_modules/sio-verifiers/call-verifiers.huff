@@ -1,0 +1,378 @@
+// /**
+//  * @dev Load an SIO from SIO array, check that the block number
+//  * matches the top of the stack, then put the blockhash on
+//  * the stack
+//  */
+// // TODO - Handle more gracefully
+// #define macro SIO_CREATE = takes(0) returns(0) {
+//   0x00 0x00 revert
+// }
+
+// /*
+// Entry function for all SIO calls
+// Puts sio_offset on the stack and verifies opcode
+
+// */
+// template <sio_revert_label, opcode>
+// #define macro SIO_CALL_SETUP = takes(0) returns(3) {
+//                                                 // [ gas, address ]
+//   SIO_START<sio_revert_label, opcode>()         // [ sio_offset, gas, address ]
+//   0x20 add
+//   swap1                                         // [ gas, sio_offset, address ]
+//   dup2                                          // [ sio_offset, gas, sio_offset, address ]
+//   0x20 add calldataload eq                      // [ sio_gas == gas, sio_offset, address ]
+
+//   // iszero /* TODO: REMOVE AFTER GAS IS HANDLED */
+
+//   swap2                                         // [ address, sio_offset, sio_gas == gas ]
+//   dup2 0x40 add calldataload eq                 // [ sio_address == address, sio_offset, sio_gas == gas ]
+//   swap1                                         // [ sio_offset, sio_address == address, sio_gas == gas ]
+//   swap2 and                                     // [ (good_gas & good_address), sio_offset ]
+// }
+
+// template <sio_revert_label, sm_revert_label>
+// #define macro SIO_CALL_FINISH = takes(4) returns(1) {
+//                                             // [ all_valid, success_offset, out, outsize ]
+//   iszero                                    // [ !all_valid, success_offset, out, outsize ]
+//   <sio_revert_label>                        // [ sio_revert_label, !all_valid, success_offset, out, outsize ]
+//   jumpi                                     // [ success_offset, out, outsize ]
+//   dup1                                      // [ success_offset, success_offset, out, outsize ]
+//   0x80 add                                  // [ returndata_offset, success_offset, out, outsize ]
+//   dup2 0x20 add                             // [ returndatasize_offset, returndata_offset, success_offset, out, outsize ]
+// /* 
+//   0x21                                      // [ 0x21, success_offset, success_offset, out, outsize ]
+//   add                                       // [ returndata_offset, success_offset, out, outsize ]
+//   dup2                                      // [ success_offset, returndata_offset, success_offset, out, outsize ]
+//   0x01                                      // [ 0x01, success_offset, returndata_offset, success_offset, out, outsize ]
+//   add                                       // [ returndatasize_offset, returndata_offset, success_offset, out, outsize ] */
+
+//   /* Now we update the global returndatasize pointer and SIO offset */
+  
+//   dup1                                      // [ returndatasize_offset, returndatasize_offset, returndata_offset, success_offset, out, outsize ]
+//   SET_LAST_RETURNDATASIZE_CDPTR()           // [ returndatasize_offset, returndata_offset, success_offset, out, outsize ]
+//   calldataload                              // [ returndatasize, returndata_offset, success_offset, out, outsize ]
+//   dup1                                      // [ returndatasize, returndatasize, returndata_offset, success_offset, out, outsize ]
+//   dup6                                      // [ outsize, returndatasize, returndatasize, returndata_offset, success_offset, out, outsize ]
+
+//   /* In order to avoid copying the next SIO block into the returndata buffer (mem[out + mem offset:outsize]),
+//     we need to use min(outsize, returndatasize) as the actual size for the return buffer.*/
+  
+//   lt                                        // [ outsize < returndatasize, returndatasize, returndata_offset, success_offset, out, outsize ]
+//   out_smaller                               // [ out_smaller, outsize < returndatasize, returndatasize, returndata_offset, success_offset, out, outsize ]
+//   jumpi                                     // [ returndatasize, returndata_offset, success_offset, out, outsize ]
+//   swap4                                     // [ outsize, returndata_offset, success_offset, out, returndatasize ]
+//   out_smaller:
+//   swap4
+
+//   /*
+//   (outsize < returndatasize)
+//     ? [ outsize, returndata_offset, success_offset, out, returndatasize ]
+//     : [ returndatasize, returndata_offset, success_offset, out, outsize ]
+//   /* Either way, the smaller size stays on top of the stack and the greater size goes to the end */
+  
+//                                             // [ good_size, returndata_offset, success_offset, out, bad_size ]
+//   swap2                                     // [ success_offset, returndata_offset, good_size, out, bad_size ]
+//   calldataload                              // [ success, returndata_offset, good_size, out, bad_size ]
+//   swap4                                     // [ bad_size, returndata_offset, good_size, out, success ]
+//   pop                                       // [ returndata_offset, good_size, out, success ]
+//   swap1                                     // [ good_size, returndata_offset, out, success ]
+//   swap2                                     // [ out, returndata_offset, good_size, success ]
+//   ADD_GUEST_PTR_OFFSET<sm_revert_label>()   // [ (out + mem offset), returndata_offset, good_size, success ]
+//   swap1                                     // [ returndata_offset, (out + mem offset), good_size, success ]
+//   0x40 add /* encoding is kind of wonky right now */
+//   swap1
+//   stop
+//   calldatacopy                              // [ success ]
+// }
+
+
+// /**
+//  * @title SIO_VERIFY_CALL_7
+//  * @dev call & callcode
+//  * @notice verify call inputs match the stack, then copy returndata
+//  * @dev Stack: [gas, address, value, in, insize, out, outsize]
+//  * @dev SIO Block Structure:
+//   struct CallSIO {
+//     bytes32 stateRoot;
+//     uint256 gas;
+//     address to;
+//     uint256 callvalue;
+//     bytes32 calldatahash;
+//     bool callsuccess;
+//     uint256 returndatasize;
+//     bytes returndata;
+//   }
+//  * @dev Verification:
+//  *  - gas == stack[0]
+//  *  - address == stack[1]
+//  *  - callvalue == stack[2]
+//  *  - calldatahash == keccak256(stack[3] + mem offset, stack[4])
+//  * @return
+//  *  - @param success - boolean added to stack
+//  *  - @param returndatasize - stored in memory 
+//  *  - @param returndata - stored at mem[in: insize]
+//  */
+// template <sio_revert_label, sm_revert_label, opcode>
+// #define macro SIO_VERIFY_CALL_7 = takes(7) returns(1) {
+//                                             // [ gas, address, value, in, insize, out, outsize ]
+//   SIO_CALL_SETUP<sio_revert_label, opcode>()// [ (good_gas & good_address), sio_offset, value, in, insize, out, outsize ]
+//   swap2                                     // [ value, sio_offset, (good_gas & good_address), in, insize, out, outsize ]
+//   dup2                                      // [ sio_offset, value, sio_offset, (good_gas & good_address), in, insize, out, outsize ]
+//   0x60 add calldataload eq                  // [ good_value, sio_offset, (good_gas & good_address), in, insize, out, outsize ]
+//   swap4                                     // [ insize, sio_offset, (good_gas & good_address), in, good_value, out, outsize ]
+//   swap1                                     // [ sio_offset, insize, (good_gas & good_address), in, good_value, out, outsize ]
+//   swap3                                     // [ in, insize, (good_gas & good_address), sio_offset, good_value, out, outsize ]
+//   ADD_GUEST_PTR_OFFSET<sm_revert_label>() sha3 // [ hash(calldata), (good_gas & good_address), sio_offset, good_value, out, outsize ]
+  
+//   dup3 dup1 0x80 add calldataload add 0x20 add calldataload eq             // [ good_calldata, (good_gas & good_address), sio_offset, good_value, out, outsize ]
+//   and                                       // [ (good_calldata & (good_gas & good_address)), sio_offset, good_value, out, outsize ]
+//   swap1 swap2                               // [ good_value, (good_calldata & (good_gas & good_address)), sio_offset, out, outsize ]
+//   and                                       // [ (good_value & (good_calldata & (good_gas & good_address))), sio_offset, out, outsize ]
+//   swap1 0xa0 add swap1                      // [ (good_value & (good_calldata & (good_gas & good_address))), success_offset, out, outsize ]
+//   SIO_CALL_FINISH<sio_revert_label, sm_revert_label>()
+  
+// }
+
+// template <sio_revert_label, opcode>
+// #define macro SIO_CALL_SETUP2 = takes(0) returns(3) {
+//                                                 // [ gas, address ]
+//   SIO_START<sio_revert_label, opcode>()         // [ sio_offset, gas, address ]
+//   // 0x20 add
+//   swap1                                         // [ gas, sio_offset, address ]
+//   dup2                                          // [ sio_offset, gas, sio_offset, address ]
+//   0x20 add calldataload eq                      // [ sio_gas == gas, sio_offset, address ]
+
+//   // iszero /* TODO: REMOVE AFTER GAS IS HANDLED */
+
+//   swap2                                         // [ address, sio_offset, sio_gas == gas ]
+//   dup2 0x40 add calldataload eq                 // [ sio_address == address, sio_offset, sio_gas == gas ]
+//   swap1                                         // [ sio_offset, sio_address == address, sio_gas == gas ]
+//   swap2 and                                     // [ (good_gas & good_address), sio_offset ]
+// }
+
+// template <sio_revert_label, sm_revert_label>
+// #define macro SIO_CALL_FINISH2 = takes(4) returns(1) {
+//                                             // [ all_valid, success_offset, out, outsize ]
+//   iszero                                    // [ !all_valid, success_offset, out, outsize ]
+//   <sio_revert_label>                        // [ sio_revert_label, !all_valid, success_offset, out, outsize ]
+//   jumpi                                     // [ success_offset, out, outsize ]
+//   dup1                                      // [ success_offset, success_offset, out, outsize ]
+//   0x80 add                                  // [ returndata_offset, success_offset, out, outsize ]
+//   dup2 0x20 add                             // [ returndatasize_offset, returndata_offset, success_offset, out, outsize ]
+// /* 
+//   0x21                                      // [ 0x21, success_offset, success_offset, out, outsize ]
+//   add                                       // [ returndata_offset, success_offset, out, outsize ]
+//   dup2                                      // [ success_offset, returndata_offset, success_offset, out, outsize ]
+//   0x01                                      // [ 0x01, success_offset, returndata_offset, success_offset, out, outsize ]
+//   add                                       // [ returndatasize_offset, returndata_offset, success_offset, out, outsize ] */
+
+//   /* Now we update the global returndatasize pointer and SIO offset */
+  
+//   dup1                                      // [ returndatasize_offset, returndatasize_offset, returndata_offset, success_offset, out, outsize ]
+//   SET_LAST_RETURNDATASIZE_CDPTR()           // [ returndatasize_offset, returndata_offset, success_offset, out, outsize ]
+//   calldataload                              // [ returndatasize, returndata_offset, success_offset, out, outsize ]
+//   dup1                                      // [ returndatasize, returndatasize, returndata_offset, success_offset, out, outsize ]
+//   dup6                                      // [ outsize, returndatasize, returndatasize, returndata_offset, success_offset, out, outsize ]
+
+//   /* In order to avoid copying the next SIO block into the returndata buffer (mem[out + mem offset:outsize]),
+//     we need to use min(outsize, returndatasize) as the actual size for the return buffer.*/
+  
+//   lt                                        // [ outsize < returndatasize, returndatasize, returndata_offset, success_offset, out, outsize ]
+//   out_smaller                               // [ out_smaller, outsize < returndatasize, returndatasize, returndata_offset, success_offset, out, outsize ]
+//   jumpi                                     // [ returndatasize, returndata_offset, success_offset, out, outsize ]
+//   swap4                                     // [ outsize, returndata_offset, success_offset, out, returndatasize ]
+//   out_smaller:
+//   swap4
+
+//   /*
+//   (outsize < returndatasize)
+//     ? [ outsize, returndata_offset, success_offset, out, returndatasize ]
+//     : [ returndatasize, returndata_offset, success_offset, out, outsize ]
+//   /* Either way, the smaller size stays on top of the stack and the greater size goes to the end */
+  
+//                                             // [ good_size, returndata_offset, success_offset, out, bad_size ]
+//   swap2                                     // [ success_offset, returndata_offset, good_size, out, bad_size ]
+//   calldataload                              // [ success, returndata_offset, good_size, out, bad_size ]
+//   swap4                                     // [ bad_size, returndata_offset, good_size, out, success ]
+//   pop                                       // [ returndata_offset, good_size, out, success ]
+//   swap1                                     // [ good_size, returndata_offset, out, success ]
+//   swap2                                     // [ out, returndata_offset, good_size, success ]
+//   ADD_GUEST_PTR_OFFSET<sm_revert_label>()   // [ (out + mem offset), returndata_offset, good_size, success ]
+
+//   swap1                                     // [ returndata_offset, (out + mem offset), good_size, success ]
+//   // 0x40 add /* encoding is kind of wonky right now */
+//   swap1
+//   // stop
+//   calldatacopy                              // [ success ]
+// }
+
+// /**
+//  * @title SIO_VERIFY_CALL_6
+//  * @dev staticcall & delegatecall
+//  * @notice verify call inputs match the stack, then copy returndata
+//  * @dev Stack: [gas, address, in, insize, out, outsize]
+//  * @dev SIO Block Structure:
+//  *  - opcode (1 byte) offset = 0
+//  *  - receipt hash (32 bytes) offset = 1
+//  *  - gas (32 bytes) offset = 33
+//  *  - address (20 bytes) offset = 65
+//  *  - calldatahash (32 bytes) offset = 85
+//  *  - call success (1 byte) offset = 117
+//  *  - returndatasize (32 bytes) offset = 118
+//  *  - returndata (returndatasize bytes) offset = 150
+//  * @dev Verification:
+//  *  - gas == stack[0]
+//  *  - address == stack[1]
+//  *  - calldatahash == keccak256(stack[2] + mem offset, stack[3])
+//  * @return
+//  *  - @param success - boolean added to stack
+//  *  - @param returndatasize - stored in memory 
+//  *  - @param returndata - stored at mem[in: insize]
+//  */
+// template <sio_revert_label, sm_revert_label, opcode>
+// #define macro SIO_VERIFY_CALL_6 = takes(6) returns(1) {
+//                                                       // [ gas, address, in, insize, out, outsize ]
+//   SIO_CALL_SETUP2<sio_revert_label, opcode>()         // [ (good_gas & good_address), sio_offset, in, insize, out, outsize ]
+//   swap3                                               // [ insize, sio_offset, in, (good_gas & good_address), out, outsize ]
+//   swap1                                               // [ sio_offset, insize, in, (good_gas & good_address), out, outsize ] 
+//   swap2                                               // [ in, insize, sio_offset, (good_gas & good_address), out, outsize ]
+  
+//   ADD_GUEST_PTR_OFFSET<sm_revert_label>()
+//   /*  */
+//   // dup1 dup1 dup1 /* ptr, ptr, ptr, ptr */
+//   // 0x60 add mload swap3 /* ptr, ptr, ptr, ptr+60 */
+//   // 0x40 add mload swap2 /* ptr, ptr, ptr+0x40, ptr+60 */
+//   // 0x20 add mload swap1 /* ptr, ptr+20, ptr+0x40, ptr+60 */
+//   // mload
+//   // stop
+//   /*  */
+//   sha3        // [ hash(calldata), sio_offset, (good_gas & good_address), out, outsize ]  
+//   dup2 0x60 add calldataload eq                       // [ good_calldata, sio_offset, (good_gas & good_address), out, outsize ]
+//   swap1 0x80 add                           // [ success_offset, good_calldata, (good_gas & good_address), out, outsize ]
+//   swap2                                               // [ (good_gas & good_address), good_calldata, success_offset, out, outsize ]
+//   and                                                 // [ ((good_gas & good_address) & good_calldata), success_offset, out, outsize ]
+//   /* swap3                                            // [ sio_offset, op_valid, gas_valid, hash_valid, address_valid, out, outsize ]
+//   0x75                                                // [ 0x75, sio_offset, op_valid, gas_valid, hash_valid, address_valid, out, outsize ]
+//   add                                                 // [ 0x75 + sio_offset, op_valid, gas_valid, hash_valid, address_valid, out, outsize ]
+//   swap4                                               // [ address_valid, op_valid, gas_valid, hash_valid, success_offset, out, outsize ]
+//   and                                                 // [ address_valid & op_valid, gas_valid, hash_valid, success_offset, out, outsize ]
+//   and                                                 // [ address_valid & op_valid & gas_valid, hash_valid, success_offset, out, outsize ]
+//   and                                                 // [ (address_valid & op_valid & gas_valid & hash_valid), success_offset, out, outsize ] */
+//   SIO_CALL_FINISH2<sio_revert_label, sm_revert_label>()
+// }
+
+// /**
+//  * @title call
+//  * @notice verify call inputs match the stack, then copy returndata
+//  * @dev Stack: [gas, address, value, in, insize, out, outsize]
+//  * @dev SIO Block Structure:
+//  *  - opcode (1 byte) offset = 0
+//  *  - receipt hash (32 bytes) offset = 1
+//  *  - gas (32 bytes) offset = 33
+//  *  - address (20 bytes) offset = 65
+//  *  - callvalue (32 bytes) offset = 85
+//  *  - calldatahash (32 bytes) offset = 117
+//  *  - call success (1 byte) offset = 149
+//  *  - returndatasize (32 bytes) offset = 150
+//  *  - returndata (returndatasize bytes) offset = 182
+//  * @dev Verification:
+//  *  - gas == stack[0]
+//  *  - address == stack[1]
+//  *  - callvalue == stack[2]
+//  *  - calldatahash == keccak256(stack[3] + mem offset, stack[4])
+//  * @return
+//  *  - @param success - boolean added to stack
+//  *  - @param returndatasize - stored in memory 
+//  *  - @param returndata - stored at mem[in: insize]
+//  */
+// template <sio_revert_label, sm_revert_label>
+// #define macro SIO_VERIFY_CALL = takes(7) returns(1) {
+//   SIO_VERIFY_CALL_7<sio_revert_label, sm_revert_label, 0xf1>()
+// }
+
+// /**
+//  * @title callcode
+//  * @notice verify call inputs match the stack, then copy returndata
+//  * @dev Stack: [gas, address, value, in, insize, out, outsize]
+//  * @dev SIO Block Structure:
+//  *  - opcode (1 byte) offset = 0
+//  *  - receipt hash (32 bytes) offset = 1
+//  *  - gas (32 bytes) offset = 33
+//  *  - address (20 bytes) offset = 65
+//  *  - callvalue (32 bytes) offset = 85
+//  *  - calldatahash (32 bytes) offset = 117
+//  *  - call success (1 byte) offset = 149
+//  *  - returndatasize (32 bytes) offset = 150
+//  *  - returndata (returndatasize bytes) offset = 182
+//  * @dev Verification:
+//  *  - gas == stack[0]
+//  *  - address == stack[1]
+//  *  - callvalue == stack[2]
+//  *  - calldatahash == keccak256(stack[3] + mem offset, stack[4])
+//  * @return
+//  *  - @param success - boolean added to stack
+//  *  - @param returndatasize - stored in memory 
+//  *  - @param returndata - stored at mem[in: insize]
+//  */
+// template <sio_revert_label, sm_revert_label>
+// #define macro SIO_VERIFY_CALLCODE = takes(7) returns(1) {
+//   SIO_VERIFY_CALL_7<sio_revert_label, sm_revert_label, 0xf2>()
+// }
+
+// /**
+//  * @title delegatecall
+//  * @notice verify call inputs match the stack, then copy returndata
+//  * @dev Stack: [gas, address, in, insize, out, outsize]
+//  * @dev SIO Block Structure:
+//  *  - opcode (1 byte) offset = 0
+//  *  - receipt hash (32 bytes) offset = 1
+//  *  - gas (32 bytes) offset = 33
+//  *  - address (20 bytes) offset = 65
+//  *  - calldatahash (32 bytes) offset = 85
+//  *  - call success (1 byte) offset = 117
+//  *  - returndatasize (32 bytes) offset = 118
+//  *  - returndata (returndatasize bytes) offset = 150
+//  * @dev Verification:
+//  *  - gas == stack[0]
+//  *  - address == stack[1]
+//  *  - calldatahash == keccak256(stack[2] + mem offset, stack[3])
+//  * @return
+//  *  - @param success - boolean added to stack
+//  *  - @param returndatasize - stored in memory 
+//  *  - @param returndata - stored at mem[in: insize]
+//  */
+// template <sio_revert_label, sm_revert_label>
+// #define macro SIO_VERIFY_DELEGATECALL = takes(6) returns(1) {
+//   // [gas, address, in, insize, out, outsize]
+//   SIO_VERIFY_CALL_6<sio_revert_label, sm_revert_label, 0xf4>()
+// }
+
+// /**
+//  * @title staticcall
+//  * @notice verify call inputs match the stack, then copy returndata
+//  * @dev Stack: [gas, address, in, insize, out, outsize]
+//  * @dev SIO Block Structure:
+//  *  - opcode (1 byte) offset = 0
+//  *  - receipt hash (32 bytes) offset = 1
+//  *  - gas (32 bytes) offset = 33
+//  *  - address (20 bytes) offset = 65
+//  *  - calldatahash (32 bytes) offset = 85
+//  *  - call success (1 byte) offset = 117
+//  *  - returndatasize (32 bytes) offset = 118
+//  *  - returndata (returndatasize bytes) offset = 150
+//  * @dev Verification:
+//  *  - gas == stack[0]
+//  *  - address == stack[1]
+//  *  - calldatahash == keccak256(stack[2] + mem offset, stack[3])
+//  * @return
+//  *  - @param success - boolean added to stack
+//  *  - @param returndatasize - stored in memory 
+//  *  - @param returndata - stored at mem[in: insize]
+//  */
+// template <sio_revert_label, sm_revert_label>
+// #define macro SIO_VERIFY_STATICCALL = takes(6) returns(1) {
+//   // [gas, address, in, insize, out, outsize]
+//   SIO_VERIFY_CALL_6<sio_revert_label, sm_revert_label, 0xfa>()
+// }
+
+

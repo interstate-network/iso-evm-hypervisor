@@ -1,0 +1,47 @@
+/**
+ * @title sload
+ * @notice verify slot and put value on stack
+ * @dev Stack: [slot]
+ * @dev SIO Block Structure:
+ *  - opcode (1 byte) offset = 0
+ *  - slot (32 bytes) offset = 1
+ *  - value (32 bytes) offset = 33
+ * @dev Verification:
+ *  - slot == stack[0]
+ * @return
+ *  - @param value - storage value added to stack
+ */
+template <sio_revert_label>
+#define macro SIO_VERIFY_SLOAD = takes(1) returns(1) {
+                                                        // [ slot ]
+  SIO_VERIFY_ONE_RETURN_ONE<sio_revert_label, 0x54>()   // [ value ]
+}
+
+/**
+ * @title sstore
+ * @notice verify slot and value
+ * @dev Stack: [slot, value]
+ * @dev SIO Block Structure:
+ *  - opcode (1 byte) offset = 0
+ *  - slot (32 bytes) offset = 1
+ *  - value (32 bytes) offset = 33
+ * @dev Verification:
+ *  - slot == stack[0]
+ *  - value == stack[1]
+ */
+template <sio_revert_label>
+#define macro SIO_VERIFY_SSTORE = takes(2) returns(0) {
+  // [ slot, value ]
+  SIO_START<sio_revert_label, 0x55>() // [ record_meta_mtr, slot, value ]
+  /* skip state root */
+  0x20 add
+  SIO_VERIFY_TWO_INTERNAL<sio_revert_label>()
+/*   GET_CURRENT_SIO_CDPTR() swap1                 // [ slot, sio_offset, value ]
+  dup2 calldataload 0xf8 shr 0x55 eq            // [ op_valid, slot, sio_offset, value ]
+  swap1 dup3 0x01 add calldataload eq           // [ slot_valid, op_valid, sio_offset, value ]
+  swap3                                         // [ value, op_valid, sio_offset, slot_valid ]
+  dup3 0x21 add calldataload eq                 // [ value_valid, op_valid, sio_offset, slot_valid ]
+  swap2 swap3                                   // [ slot_valid, op_valid, value_valid, sio_offset ]
+  and and iszero <sio_revert_label> jumpi       // [ sio_offset ]
+  0x41 add SET_CURRENT_SIO_CDPTR()              // [] */
+}

@@ -1,0 +1,170 @@
+// template <sio_revert_label, opcode>
+// #define macro SIO_CHECK_OPCODE = takes(0) returns(0) {
+//   // [ access_record_offset ]
+//   /** skip length -- @dev TODO: verify length */
+//   0x20 add            // [ record_body_ptr ]
+//   dup1                // [ record_body_ptr, record_body_ptr ]
+//   calldataload        // [ opcode, record_body_ptr ]
+//   <opcode> eq iszero <sio_revert_label> jumpi // [ record_body_ptr ]
+//   /* skip opcode */
+//   0x20 add  // [ record_body_meta_ptr ]
+// }
+
+// /* get offset of next sio struct, check opcode is valid (or throw), return offset to beginning of meta */
+// template <sio_revert_label, opcode>
+// #define macro SIO_START = takes(0) returns(0) {
+//   SIO_NEXT_OFFSET() // [ access_record_offset ]
+//   SIO_CHECK_OPCODE<sio_revert_label, opcode>() // [ record_body_meta_ptr ]
+// }
+
+/**
+ * @title CALL_FINISH
+ * @dev Copies `outsize` bytes from returndata to memory at `out`
+ * @notice In order to avoid copying data from the next access record into the returndata buffer,
+ * we need to use min(outsize, returndatasize) as the actual size for the return buffer.
+ * The EVM does not copy additional 0 bytes into oversized return buffers, so this will not cause any
+ * unexpected side effects.
+*/
+template <sm_revert_label>
+#define macro CALL_FINISH = takes(3) returns(1) {
+  // [ returndatasize_ptr, returndata_ptr, success_ptr, out, outsize ]
+  /** @dev Update the last_returndatasize pointer */
+  dup1 SET_LAST_RETURNDATASIZE_CDPTR()  // [ returndatasize_ptr, returndata_ptr, success_ptr, out, outsize ]
+  /** @dev Decide which size to use for the return buffer */
+  calldataload                          // [ returndatasize, returndata_ptr, success_ptr, out, outsize ]
+  dup1 dup6                             // [ outsize, returndatasize, returndatasize, returndata_ptr, success_ptr, out, outsize ]
+  lt                                    // [ outsize < returndatasize, returndatasize, returndata_ptr, success_ptr, out, outsize ]
+  out_smaller                           // [ out_smaller, outsize < returndatasize, returndatasize, returndata_ptr, success_ptr, out, outsize ]
+  jumpi                                 // [ returndatasize, returndata_ptr, success_ptr, out, outsize ]
+  swap4                                 // [ outsize, returndata_ptr, success_ptr, out, returndatasize ]
+  out_smaller: swap4
+  
+  
+  /**
+  @dev stack = (outsize < returndatasize)
+    ? [ outsize, returndata_ptr, success_ptr, out, returndatasize ]
+    : [ returndatasize, returndata_ptr, success_ptr, out, outsize ]
+  Either way, the smaller size stays on top of the stack and the greater size goes to the end
+  */
+  // [ good_size, returndata_ptr, success_ptr, out, bad_size ]
+  swap2                                     // [ success_ptr, returndata_ptr, good_size, out, bad_size ]
+  calldataload                              // [ success, returndata_ptr, good_size, out, bad_size ]
+  swap4                                     // [ bad_size, returndata_ptr, good_size, out, success ]
+  pop                                       // [ returndata_ptr, good_size, out, success ]
+  swap1                                     // [ good_size, returndata_ptr, out, success ]
+  swap2                                     // [ out, returndata_ptr, good_size, success ]
+  ADD_GUEST_PTR_OFFSET<sm_revert_label>()   // [ (out + mem offset), returndata_ptr, good_size, success ]
+  calldatacopy                              // [ success ]
+}
+
+template <sio_revert_label, sm_revert_label>
+#define macro VERIFY_CALL_CALLCODE_BODY = takes(7) returns(1) {
+    /** @dev first we compare all the input data on the stack to the access record */
+  swap3 dup4                            // [ record_body_meta_ptr, value, gas, address, record_body_meta_ptr, in, insize, out, outsize ]
+  0x80 add calldataload eq              // [ value_match, gas, address, record_body_meta_ptr, in, insize, out, outsize ]
+  swap2 dup4                            // [ record_body_meta_ptr, address, gas, value_match, record_body_meta_ptr, in, insize, out, outsize ]
+  0x60 add calldataload eq              // [ address_match, gas, value_match, record_body_meta_ptr, in, insize, out, outsize ]
+  swap1 dup4                            // [ record_body_meta_ptr, gas, address_match, value_match, record_body_meta_ptr, in, insize, out, outsize ]
+  0x20 add calldataload eq              // [ gas_match, address_match, value_match, record_body_meta_ptr, in, insize, out, outsize ]
+  and and                               // [ (gas_match & address_match & value_match), record_body_meta_ptr, in, insize, out, outsize ]
+  swap3                                 // [ insize, record_body_meta_ptr, in, (gas_match & address_match & value_match), out, outsize ]
+  swap1 swap2                           // [ in, insize, record_body_meta_ptr, (gas_match & address_match & value_match), out, outsize ]
+  ADD_GUEST_PTR_OFFSET<sm_revert_label>()
+  sha3                                  // [ calldata_hash, record_body_meta_ptr, (gas_match & address_match & value_match), out, outsize ]
+  dup2 0xa0 add calldataload eq         // [ calldata_match, record_body_meta_ptr, (gas_match & address_match & value_match), out, outsize ]
+  swap1 swap2 and                       // [ ((gas_match & address_match & value_match) & calldata_match), record_body_meta_ptr, out, outsize ]
+  iszero <sio_revert_label> jumpi       // [ record_body_meta_ptr, out, outsize ]
+  /** @dev Set up the stack for call_finish */
+  0xc0 add                              // [ success_ptr, out, outsize ]
+  dup1 0x60 add                         // [ returndata_ptr, success_ptr, out, outsize ]
+  dup2 0x40 add                         // [ returndatasize_ptr, returndata_ptr, success_ptr, out, outsize ]
+  CALL_FINISH<sm_revert_label>()        // [ success ]
+}
+
+/**
+struct CallWitness {
+  uint256  opcode
+  // -- meta --
+  bytes32  stateRootLeave - skip
+  uint256  gas - verify
+  uint256  gasUsed - skip
+  address  to - verify
+  uint256  callvalue - verify
+  bytes32  calldataHash - verify
+  bool     success - push to stack
+  bytes    returndata - store pointer in memory, copy to out-outsize
+}
+*/
+template <sio_revert_label, sm_revert_label>
+#define macro SIO_VERIFY_CALL = takes(7) returns(1) {
+  // [gas, address, value, in, insize, out, outsize]
+  SIO_START<sio_revert_label, 0xf1>()                            // [ record_body_meta_ptr, gas, address, value, in, insize, out, outsize ]
+  VERIFY_CALL_CALLCODE_BODY<sio_revert_label, sm_revert_label>() // [ success ]
+}
+
+template <sio_revert_label, sm_revert_label>
+#define macro SIO_VERIFY_CALLCODE = takes(7) returns(1) {
+  SIO_START<sio_revert_label, 0xf2>()                            // [ record_body_meta_ptr, gas, address, value, in, insize, out, outsize ]
+  VERIFY_CALL_CALLCODE_BODY<sio_revert_label, sm_revert_label>() // [ success ]
+}
+
+template <sio_revert_label, sm_revert_label>
+#define macro VERIFY_STATICCALL_DELEGATECALL_BODY = takes(6) returns(1) {
+  /** @dev first we compare all the input data on the stack to the access record */
+  // [ record_body_meta_ptr, gas, address, in, insize, out, outsize ]
+  swap2 dup3                            // [ record_body_meta_ptr, address, gas, record_body_meta_ptr, in, insize, out, outsize ]
+  0x40 add calldataload eq              // [ address_match, gas, record_body_meta_ptr, in, insize, out, outsize ]
+  swap1 dup3 calldataload eq and        // [ (address_match & gas_match), record_body_meta_ptr, in, insize, out, outsize ]
+  swap3                                 // [ insize, record_body_meta_ptr, in, (address_match & gas_match), out, outsize ]
+  swap1 swap2                           // [ in, insize, record_body_meta_ptr, (address_match & gas_match), out, outsize ]
+  ADD_GUEST_PTR_OFFSET<sm_revert_label>()
+  sha3 dup2 0x60 add calldataload eq    // [ calldata_match, record_body_meta_ptr, (address_match & gas_match), out, outsize ]
+  swap1 swap2 and                       // [ ((address_match & gas_match) & calldata_match), record_body_meta_ptr, out, outsize ]
+  iszero <sio_revert_label> jumpi       // [ record_body_meta_ptr, out, outsize ]
+    /** @dev Set up the stack for call_finish */
+  0x80 add                              // [ success_ptr, out, outsize ]
+  dup1 0x60 add                         // [ returndata_ptr, success_ptr, out, outsize ]
+  dup2 0x40 add                         // [ returndatasize_ptr, returndata_ptr, success_ptr, out, outsize ]
+  CALL_FINISH<sm_revert_label>()        // [ success ]
+}
+
+/**
+struct StaticCallWitness {
+  uint256  opcode
+  // -- meta --
+  uint256  gas - verify
+  uint256  gasUsed - skip
+  address  to - verify
+  bytes32  calldataHash - verify
+  bool     success - push to stack
+  bytes    returndata - store pointer in memory, copy to out-outsize
+}
+*/
+template <sio_revert_label, sm_revert_label>
+#define macro SIO_VERIFY_STATICCALL = takes(6) returns(1) {
+  // [gas, address, in, insize, out, outsize]
+  SIO_START<sio_revert_label, 0xfa>()   // [ record_body_meta_ptr, gas, address, in, insize, out, outsize ]
+  VERIFY_STATICCALL_DELEGATECALL_BODY<sio_revert_label, sm_revert_label>() // [ success ]
+}
+
+/**
+struct StaticCallWitness {
+  uint256  opcode
+  // -- meta --
+  bytes stateRootLeave - skip
+  uint256  gas - verify
+  uint256  gasUsed - skip
+  address  to - verify
+  bytes32  calldataHash - verify
+  bool     success - push to stack
+  bytes    returndata - store pointer in memory, copy to out-outsize
+}
+*/
+template <sio_revert_label, sm_revert_label>
+#define macro SIO_VERIFY_DELEGATECALL = takes(6) returns(1) {
+  // [gas, address, in, insize, out, outsize]
+  SIO_START<sio_revert_label, 0xf4>()   // [ record_body_meta_ptr, gas, address, in, insize, out, outsize ]
+  /** @dev first we compare all the input data on the stack to the access record */
+  0x20 add /* skip stateRootLeave */    // [ record_body_meta_ptr, gas, address, in, insize, out, outsize ]
+  VERIFY_STATICCALL_DELEGATECALL_BODY<sio_revert_label, sm_revert_label>() // [ success ]
+}

@@ -1,0 +1,36 @@
+{
+  "name": "huff-hypervisor",
+  "version": "1.0.0",
+  "description": "",
+  "main": "compile-huff.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "npx mocha ./test/test",
+    "test-encoding": "npx mocha ./test/test-encoding.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aztec/huff": "^0.0.1",
+    "chai": "^4.2.0",
+    "core-js-pure": "^3.2.1",
+    "easy-solc": "^1.0.1",
+    "emasm": "^0.1.7",
+    "ethereumjs-util": "^6.2.0",
+    "ethereumjs-vm": "git+ssh://git@github.com/interstate-network/ethereumjs-vm.git",
+    "kool-makerpccall": "^0.1.1",
+    "solc": "^0.5.11",
+    "state-plasma": "git+ssh://git@github.com/interstate-network/interstate-poa.git",
+    "table": "^5.4.6",
+    "util.promisify": "^1.0.0",
+    "web3": "^1.2.1",
+    "web3-eth-abi": "^1.2.1",
+    "web3-eth-contract": "^1.2.1"
+  },
+  "devDependencies": {
+    "faker": "^4.1.0"
+  }
+}

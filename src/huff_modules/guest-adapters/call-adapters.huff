@@ -1,0 +1,37 @@
+
+template <sio_error_label, safemath_error_label>
+#define macro GUEST_CALL = takes(7) returns(1) {
+  SIO_VERIFY_CALL<sio_error_label, safemath_error_label>()
+}
+
+template <sio_error_label, safemath_error_label>
+#define macro GUEST_CALLCODE = takes(7) returns(1) {
+  SIO_VERIFY_CALLCODE<sio_error_label, safemath_error_label>()
+}
+
+template <sio_error_label, safemath_error_label>
+#define macro GUEST_STATICCALL = takes(7) returns(1) {
+  SIO_VERIFY_STATICCALL<sio_error_label, safemath_error_label>()
+}
+
+template <sio_error_label, safemath_error_label>
+#define macro GUEST_DELEGATECALL = takes(7) returns(1) {
+  SIO_VERIFY_DELEGATECALL<sio_error_label, safemath_error_label>()
+}
+
+template <sio_error_label, safemath_error_label>
+#define macro GUEST_CREATE = takes(7) returns(1) {
+  swap1
+  ADD_GUEST_PTR_OFFSET<safemath_error_label>()
+  swap1
+  create
+}
+
+template <safemath_error_label>
+#define macro GUEST_CREATE2 = takes(7) returns(1) {
+  swap2
+  ADD_GUEST_PTR_OFFSET<safemath_error_label>()
+  swap2
+  create2
+}
+
