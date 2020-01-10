@@ -1,16 +1,7 @@
-const VM = require('/home/dillon/forks/interstate-js-vm/dist/index').default;
-const { encodeTxo } = require('state-plasma/src/txo/txo-utils');
+const VM = require('interstate-js-vm').default;
 const getTxOpts = require('./tx');
 const hypervisorMacro = require('../src/compile');
 
-const fixTXO = (buf) => Buffer.from(
-  encodeTxo(buf).toString('hex')
-    /* .replace(
-      '290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563',
-      'c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'
-    ) */,
-  'hex'
-);
 
 
 const txDataZero = 4;
@@ -77,7 +68,7 @@ class DebugVM {
     };
   }
 
-  async compare(tx, priceOnly, getSteps) {
+  /* async compare(tx, priceOnly, getSteps) {
     const nativeResult = await this.send(tx, getSteps);
     let { txo, amountSpent: nativePrice } = nativeResult;
     nativePrice = nativePrice.toNumber();
@@ -96,9 +87,9 @@ class DebugVM {
         virtualResult
       })
     };
-  }
+  } */
 
-  stepsToFile(steps) {
+/*   stepsToFile(steps) {
     let stepInfo = ({ pc, opcode, stack }) => `PC 0x${pc.toString(16)} | [${stack.map(x => x.toString(16))}] ${opcode}`;
     let isOp = (i, op) => steps[i].opcode == op;
     let isSequence = (start, seq) => {
@@ -194,7 +185,7 @@ class DebugVM {
     fs.writeFileSync('./steps-compare.txt', stepComp.join('\n\n'))
     fs.writeFileSync('./txo.json', JSON.stringify(txo, null, 2))
     fs.writeFileSync('./txo2.json', JSON.stringify(txo2, null, 2))
-  }
+  } */
 }
 
 module.exports = DebugVM;

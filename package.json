@@ -21,6 +21,7 @@
     "emasm": "^0.1.7",
     "ethereumjs-util": "^6.2.0",
     "ethereumjs-vm": "git+ssh://git@github.com/interstate-network/ethereumjs-vm.git",
+    "interstate-js-vm": "git+ssh://git@github.com/interstate-network/interstate-js-vm.git",
     "kool-makerpccall": "^0.1.1",
     "solc": "^0.5.11",
     "state-plasma": "git+ssh://git@github.com/interstate-network/interstate-poa.git",
