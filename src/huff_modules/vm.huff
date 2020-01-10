@@ -63,6 +63,7 @@ template <sio_error_label, safemath_error_label>
   op_delegatecall:        GUEST_DELEGATECALL<sio_error_label, safemath_error_label>() INCREMENT_AND_RUN()
   op_staticcall:          GUEST_STATICCALL<sio_error_label, safemath_error_label>() INCREMENT_AND_RUN()
   op_selfdestruct:        revert //GUEST_SELFDESTRUCT()
+  op_chainid:             GUEST_CHAINID<sio_error_label>() INCREMENT_AND_RUN()
 }
 
 template <safemath_error_label, return_status_or_data_error>

@@ -1,8 +1,8 @@
 # ISO Hypervisor
-This repository contains the ISO hypervisor - a huff contract which virtualizes EVM execution.
+This repository contains the Interstate EVM Hypervisor - a huff contract which virtualizes EVM execution in order to audit records of EVM execution.
 
 # Message Witness
-A message witness is ABI encoded with:
+The calldata to the hypervisor is an ABI encoded Message Witness, which is defined by the struct:
 
 ```cs
 struct MessageWitness {
@@ -23,22 +23,38 @@ struct MessageWitness {
   bytes           calldata
 }
 ```
+
 So the calldata will look like:
 [0-32] offset
+
 [32-64] stateRootEnter
+
 [64-96] stateRootLeave
+
 [96-128] isStatic
+
 [128-160] origin
+
 [160-192] caller
+
 [224-256] to
+
 [256-288] context
+
 [288-320] callvalue
+
 [320-352] gasPrice
+
 [352-384] gasAvailable
+
 [384-416] gasUsed
+
 [416-448] state_access_list_offset
+
 [448-480] status
+
 [480-512] returnDataHash
+
 [512-544] calldata_offset
 
 # Setup
@@ -54,7 +70,7 @@ beginning of guest memory and the native MSIZE.
 # Code
 
 # Jump Table
-
+The jump table contains 256 jumpdests, one for every byte value. 
 
 # Memory
 The hypervisor’s memory is split into restricted memory and guest memory. Restricted memory

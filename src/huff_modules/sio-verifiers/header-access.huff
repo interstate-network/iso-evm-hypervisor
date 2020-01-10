@@ -22,3 +22,8 @@ template <sio_err_label>
 #define macro READ_GASLIMIT_RECORD = takes(0) returns(1) {
   SIO_RETURN_ONE<sio_err_label, 0x45>()
 }
+
+template <sio_err_label>
+#define macro READ_CHAINID_RECORD = takes(0) returns(1) {
+  SIO_RETURN_ONE<sio_err_label, 0x45>()
+}
