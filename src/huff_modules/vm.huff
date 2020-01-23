@@ -1,9 +1,11 @@
 #include "./utils/integers.huff"
 #include "./sio-verifiers/header.huff"
 #include "./guest-adapters/header.huff"
+#include "./utils/gas.huff"
+#include "./utils/gas-fees.huff"
 
 #define macro MATH_OPERATIONS = takes(0) returns(0) {
-  op_add:               add INCREMENT_AND_RUN()
+  op_add:               INCR_GAS<FEE_ADD>() add INCREMENT_AND_RUN()
   op_mul:               mul INCREMENT_AND_RUN()
   op_sub:               sub INCREMENT_AND_RUN()
   op_div:               div INCREMENT_AND_RUN()
