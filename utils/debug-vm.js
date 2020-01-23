@@ -12,6 +12,17 @@ const dataFee = (data) => Buffer.from(data.slice(2), 'hex').reduce(
   0
 )
 
+/* function getDataFee(tx) {
+  const _tx = getTxOpts({ ...tx }).tx.serialize()
+  var data = _tx;
+  var cost = new BN(0);
+  for (var i = 0; i < data.length; i++) {
+      data[i] === 0
+          ? cost.iaddn(4)
+          : cost.iaddn(16);
+  }
+  return cost;
+} */
 
 class DebugVM {
   constructor(privateKey) {
@@ -58,14 +69,23 @@ class DebugVM {
       amountSpent
     } = await this.vm.runTx(getTxOpts(tx));
     const witness = witnesses[0];
+    // console.log(runState)
     
     return {
       ...runState,
       amountSpent,
       createdAddress,
       witness,
+      witnesses,
       steps
     };
+  }
+
+  async benchmark(tx) {
+    const { gasUsed, witness } = await this.send(tx);
+    const encodedWitness = witness.encode();
+    const { gasUsed: gasUsed2 } = await this.callHypervisor(encodedWitness)
+
   }
 
   /* async compare(tx, priceOnly, getSteps) {
