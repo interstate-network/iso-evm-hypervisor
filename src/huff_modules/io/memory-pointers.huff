@@ -5,7 +5,9 @@
 #define macro PC_PTR = takes(0) returns(1)                            { 0x2000 }
 
 /* Pointer to body of state access array. Reference is saved because ABI array item offsets are relative to the start of the body. */
-#define macro STATE_ACCESS_BODY_CDPPTR = takes(0) returns(1)          { 0x2020 }
+// #define macro STATE_ACCESS_BODY_CDPPTR = takes(0) returns(1)          { 0x2020 }
+
+#define macro VIRTUAL_GAS_USED = takes(0) returns(1)                  { 0x2020 }
 
 /* Pointer to current offset into SIO array */
 #define macro CURRENT_SIO_CDPPTR = takes(0) returns(1)                { 0x2040 }

@@ -30,16 +30,16 @@ template <safemath_error_label>
   mload
 }
 
-/** @dev Get the calldata offset to the state access array body */
-#define macro GET_STATE_ACCESS_BODY_CDPTR = takes(0) returns(1) {
-  LOAD<STATE_ACCESS_BODY_CDPPTR>()
-}
+// /** @dev Get the calldata offset to the state access array body */
+// #define macro GET_STATE_ACCESS_BODY_CDPTR = takes(0) returns(1) {
+//   LOAD<STATE_ACCESS_BODY_CDPPTR>()
+// }
 
-/** @dev Set the calldata offset to the state access array body */
-#define macro INIT_STATE_ACCESS_BODY_CDPTR = takes(0) returns(0) {
-  GET_TX_SIO_SIZE_CDPTR()
-  STORE<STATE_ACCESS_BODY_CDPPTR>()
-}
+// /** @dev Set the calldata offset to the state access array body */
+// #define macro INIT_STATE_ACCESS_BODY_CDPTR = takes(0) returns(0) {
+//   GET_TX_SIO_SIZE_CDPTR()
+//   STORE<STATE_ACCESS_BODY_CDPPTR>()
+// }
 
 /** @dev Get the calldata offset for current SIO */
 #define macro GET_CURRENT_SIO_CDPTR = takes(0) returns(1) { LOAD<CURRENT_SIO_CDPPTR>() }
