@@ -34,13 +34,16 @@ template <oog_error_label>
 #define macro INITIALIZE_HYPERVISOR = takes(0) returns(0) {
   do_start jump
   sio_error: ACCESS_ERROR()
+  verify_oog_label: VERIFY_OOG<oog_error>()
+  oog_error: 0xabcd 0x00 mstore 0x20 0x00 revert
   safemath_error: 0x1337 0x00 mstore 0x20 0x00 revert
   return_status_or_data_error: 0x2020ffff 0x00 mstore 0x20 0x00 revert
   execute_jump: EXECUTE_JUMP()
   do_start:
   PREPARE_HYPERVISOR()
   GET_PC() RUN_NEXT_INSTRUCTION()
-  VM__MAIN<sio_error, safemath_error, execute_jump, return_status_or_data_error>()
+  CHECK_GAS<verify_oog_label>()
+  VM__MAIN<sio_error, safemath_error, execute_jump, return_status_or_data_error, verify_oog_label>()
 }
 
 /* module.exports = (ary) => [
