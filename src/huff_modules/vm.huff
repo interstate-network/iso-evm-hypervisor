@@ -34,8 +34,6 @@ template <safemath_error_label>
   op_shr:               INCR_GAS<FEE_SHR>() shr INCREMENT_AND_RUN()
   op_shl:               INCR_GAS<FEE_SHL>() shl INCREMENT_AND_RUN()
   op_sar:               INCR_GAS<FEE_SAR>() sar INCREMENT_AND_RUN()
-  op_rol:               rol INCREMENT_AND_RUN()
-  op_ror:               ror INCREMENT_AND_RUN()
   op_sha3:                INCR_GAS<FEE_SHA3>() GUEST_SHA3<safemath_error_label>() INCREMENT_AND_RUN()
 }
 

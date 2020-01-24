@@ -6,7 +6,7 @@
   op_lt              op_gt              op_slt             op_sgt             
   op_eq              op_iszero          op_and             op_or              
   op_xor             op_not             op_byte            op_shl
-  op_shr             op_sar             op_rol             op_ror         
+  op_shr             op_sar             op_invalid         op_invalid         
   op_sha3            op_invalid         op_invalid         op_invalid         
   op_invalid         op_invalid         op_invalid         op_invalid         
   op_invalid         op_invalid         op_invalid         op_invalid         
