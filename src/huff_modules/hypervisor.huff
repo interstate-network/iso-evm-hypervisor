@@ -35,7 +35,7 @@ template <oog_error_label>
   do_start jump
   sio_error: ACCESS_ERROR()
   verify_oog_label: VERIFY_OOG<oog_error>()
-  oog_error: 0xabcd 0x00 mstore 0x20 0x00 revert
+  oog_error: 0xea3b mstore 0x20 0x00 revert
   safemath_error: 0x1337 0x00 mstore 0x20 0x00 revert
   return_status_or_data_error: 0x2020ffff 0x00 mstore 0x20 0x00 revert
   execute_jump: EXECUTE_JUMP()
