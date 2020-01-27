@@ -59,16 +59,10 @@ template <sio_error_label, safemath_error_label, oog_label>
 
   op_returndatasize:      INCR_GAS<FEE_RETURNDATASIZE>() GUEST_RETURNDATASIZE() INCREMENT_AND_RUN()
   op_returndatacopy:      INCR_GAS<FEE_RETURNDATACOPY>() GUEST_RETURNDATACOPY<safemath_error_label>() INCREMENT_AND_RUN()
-
-  // TODO:@nsw
-  op_create:              INCR_AND_CHECK_GAS<FEE_INVALID, oog_label>() GUEST_CREATE<sio_error_label, safemath_error_label>() INCREMENT_AND_RUN()
-  op_create2:             INCR_AND_CHECK_GAS<FEE_INVALID, oog_label>() GUEST_CREATE2<safemath_error_label>() INCREMENT_AND_RUN()
-
   op_call:                INCR_AND_CHECK_GAS<FEE_CALL, oog_label>() GUEST_CALL<sio_error_label, safemath_error_label>() INCREMENT_AND_RUN()
   op_callcode:            INCR_AND_CHECK_GAS<FEE_CALLCODE, oog_label>() GUEST_CALLCODE<sio_error_label, safemath_error_label>() INCREMENT_AND_RUN()
   op_delegatecall:        INCR_AND_CHECK_GAS<FEE_DELEGATECALL, oog_label>() GUEST_DELEGATECALL<sio_error_label, safemath_error_label>() INCREMENT_AND_RUN()
   op_staticcall:          INCR_AND_CHECK_GAS<FEE_STATICCALL, oog_label>() GUEST_STATICCALL<sio_error_label, safemath_error_label>() INCREMENT_AND_RUN()
-  op_selfdestruct:        INCR_AND_CHECK_GAS<FEE_INVALID, oog_label>() revert //GUEST_SELFDESTRUCT()
   op_chainid:             INCR_AND_CHECK_GAS<FEE_CHAINID, oog_label>() GUEST_CHAINID<sio_error_label>() INCREMENT_AND_RUN()
 }
 

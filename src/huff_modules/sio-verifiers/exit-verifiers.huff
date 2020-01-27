@@ -1,8 +1,4 @@
 #include "guest-adapters/memory-adapters.huff"
-// todo - handle this more elegantly
-#define macro SIO_SELFDESTRUCT = takes(1) returns(0) {
-  0x00 0x00 revert
-}
 
 template <return_error_label>
 #define macro SIO_VERIFY_TX_STOP = takes(2) returns(0) {
