@@ -18,3 +18,11 @@ template <amount_to_add, oog_loc>
   lt <oog_loc> jumpi              // [ vgas+cost ]
   STORE<VIRTUAL_GAS_USED>()       // []
 }
+
+template <oog_label>
+#define macro CHECK_GAS = takes(0) returns(0) {
+  LOAD<VIRTUAL_GAS_USED>()        // [ vgas ]
+  CDLOAD<GAS_AVAILABLE_CDPTR>()   // [ call_gas, vgas ]
+  /* if call_gas is less than what has been used, jump to oog check */
+  lt <oog_label> jumpi              // [ vgas+cost ]
+}
