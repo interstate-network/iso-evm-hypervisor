@@ -1,7 +1,7 @@
 #include "./utils/integers.huff"
+#include "./utils/gas.huff"
 #include "./sio-verifiers/header.huff"
 #include "./guest-adapters/header.huff"
-#include "./utils/gas.huff"
 #include "./utils/gas-fees.huff"
 
 #define macro MATH_OPERATIONS = takes(0) returns(0) {
