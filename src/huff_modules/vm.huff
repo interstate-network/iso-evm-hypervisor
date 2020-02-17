@@ -70,7 +70,7 @@ template <safemath_error_label, return_status_or_data_error, oog_label>
 #define macro EXIT_OPERATIONS = takes(0) returns(0) {
   op_return:              INCR_AND_CHECK_GAS<FEE_RETURN, oog_label>() GUEST_RETURN<safemath_error_label, return_status_or_data_error>()
   op_revert:              INCR_AND_CHECK_GAS<FEE_REVERT, oog_label>() GUEST_REVERT<safemath_error_label, return_status_or_data_error>()
-  op_stop:                INCR_AND_CHECK_GAS<FEE_STOP, oog_label>() SIO_VERIFY_TX_STOP<return_status_or_data_error>()
+  op_stop:                INCR_AND_CHECK_GAS<FEE_STOP, oog_label>() VERIFY_ACCESS_TX_STOP<return_status_or_data_error>()
 }
 
 template <safemath_error_label>
