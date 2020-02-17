@@ -3,5 +3,5 @@
 #include './sio-verifiers/global-verifiers.huff'
 #include './sio-verifiers/storage-verifiers.huff'
 #include './sio-verifiers/exit-verifiers.huff'
-#include './sio-verifiers/header-access.huff'
-#include './sio-verifiers/code-access.huff'
+#include './sio-verifiers/header-verifiers.huff'
+#include './sio-verifiers/code-verifiers.huff'

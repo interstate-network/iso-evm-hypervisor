@@ -1,11 +1,11 @@
 template <sio_revert_label>
 #define macro GUEST_BLOCKHASH = takes(1) returns(1) {
-  SIO_VERIFY_BLOCKHASH<sio_revert_label>()
+  VERIFY_ACCESS_BLOCKHASH<sio_revert_label>()
 }
 
 
 
 template <sio_revert_label>
 #define macro GUEST_BALANCE = takes(1) returns(1) {
-  SIO_VERIFY_BALANCE<sio_revert_label>()
+  VERIFY_ACCESS_BALANCE<sio_revert_label>()
 }

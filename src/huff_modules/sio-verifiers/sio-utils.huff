@@ -81,7 +81,7 @@ template <sio_revert_label, opcode>
 }
 
 /**
- * @title SIO_VERIFY_ONE_RETURN_ONE
+ * @title VERIFY_ACCESS_ONE_RETURN_ONE
  * @dev Verifies:
  *  - the first byte in the current SIO block is the one being executed
  *  - the first value in the SIO block (bytes 1-33) match the top of the stack
@@ -89,13 +89,8 @@ template <sio_revert_label, opcode>
  * if both checks pass, pushes the second value from the SIO block(33-65) to the stack
  * and adds 65 to the current SIO block
 */
-/*
-  read first word from sio, compare to value on the stack
-    throw if not eq
-  read second word from sio, leave on stack
-*/
 template <sio_revert_label, opcode>
-#define macro SIO_VERIFY_ONE_RETURN_ONE = takes(1) returns(1) {
+#define macro VERIFY_ACCESS_ONE_RETURN_ONE = takes(1) returns(1) {
                                         // [ expected_value ]
   SIO_START<sio_revert_label, opcode>() // [ begin_meta_ptr, expected_value ]
   swap1 dup2 // [ begin_meta_ptr, expected_value, begin_meta_ptr ]
@@ -104,13 +99,13 @@ template <sio_revert_label, opcode>
 }
 
 template <sio_revert_label>
-#define macro SIO_VERIFY_TWO_INTERNAL = takes(3) returns(0) {
+#define macro VERIFY_ACCESS_TWO_INTERNAL = takes(3) returns(0) {
                                               // [ begin_meta_ptr, expected_value1, expected_value2 ]
   swap1 dup2                                  // [ begin_meta_ptr, expected_value1, begin_meta_ptr, expected_value2 ]
   calldataload eq                             // [ good_value1, begin_meta_ptr, expected_value2 ]
   swap2                                       // [ expected_value2, begin_meta_ptr, good_value1 ]
   swap1 0x20 add calldataload eq              // [ good_value2, good_value1 ]
-  and iszero <sio_revert_label> jumpi 
+  and iszero <sio_revert_label> jumpi         // [ ]
 }
 
 /*
@@ -118,8 +113,8 @@ template <sio_revert_label>
   read second word from sio, compare to value on the stack, throw if not eq
 */
 template <sio_revert_label, opcode>
-#define macro SIO_VERIFY_TWO = takes(2) returns(0) {
+#define macro VERIFY_ACCESS_TWO = takes(2) returns(0) {
                                         // [ expected_value1, expected_value2 ]
   SIO_START<sio_revert_label, opcode>() // [ begin_meta_ptr, expected_value1, expected_value2 ]
-  SIO_VERIFY_TWO_INTERNAL<sio_revert_label>()
+  VERIFY_ACCESS_TWO_INTERNAL<sio_revert_label>()
 }

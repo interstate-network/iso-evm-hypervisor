@@ -4,7 +4,7 @@ SIO verifiers are macros which ensure the inputs and outputs for internal storag
 ## Call Verifiers
 These macros verify call inputs match the stack, then save a reference in memory to the location of the transaction's returndatasize. Will also copy return data according to the `out, outsize` arguments provided to the call.
 
-### - SIO_VERIFY_CALL_7
+### - VERIFY_ACCESS_CALL_7
 Used for call & callcode
 Input Stack: [gas, address, value, in, insize, out, outsize]
 @dev SIO Block Structure:
@@ -27,7 +27,7 @@ Input Stack: [gas, address, value, in, insize, out, outsize]
  - @param returndatasize - location stored in memory 
  - @param returndata - copied to mem[in: insize] (only the requested size is copied. if insize > returndatasize, remaining 0 bytes are appended to the end)
  
-## SIO_VERIFY_CALL_7
+## VERIFY_ACCESS_CALL_7
 Used for staticcall & delegatecall
 Input Stack: [gas, address, in, insize, out, outsize]
 @dev SIO Block Structure:

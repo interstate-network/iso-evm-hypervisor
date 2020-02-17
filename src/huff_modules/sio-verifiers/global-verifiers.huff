@@ -15,9 +15,9 @@
  *  - @param blockhash
  */
 template <sio_revert_label>
-#define macro SIO_VERIFY_BALANCE = takes(1) returns(0) {
+#define macro VERIFY_ACCESS_BALANCE = takes(1) returns(0) {
                                                         // [ address ]
-  SIO_VERIFY_ONE_RETURN_ONE<sio_revert_label, 0x31>()   // [ balance ]
+  VERIFY_ACCESS_ONE_RETURN_ONE<sio_revert_label, 0x31>()   // [ balance ]
 }
 
 /**
@@ -34,13 +34,13 @@ template <sio_revert_label>
  *  - @param blockhash
  */
 template <sio_revert_label>
-#define macro SIO_VERIFY_BLOCKHASH = takes(0) returns(0) {
+#define macro VERIFY_ACCESS_BLOCKHASH = takes(0) returns(0) {
                                                         // [ number ]
-  SIO_VERIFY_ONE_RETURN_ONE<sio_revert_label,  0x40>()  // [ blockhash ]
+  VERIFY_ACCESS_ONE_RETURN_ONE<sio_revert_label,  0x40>()  // [ blockhash ]
 }
 
 
 template <sio_revert_label>
-#define macro SIO_VERIFY_GAS = takes(1) returns(1) {
+#define macro VERIFY_ACCESS_GAS = takes(1) returns(1) {
   SIO_RETURN_ONE<sio_revert_label, 0x5a>()   // [ balance ]
 }
