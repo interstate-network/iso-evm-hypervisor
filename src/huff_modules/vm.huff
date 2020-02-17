@@ -100,7 +100,6 @@ template <sio_error_label, oog_label>
   op_coinbase:          INCR_AND_CHECK_GAS<FEE_COINBASE, oog_label>() GUEST_COINBASE<sio_error_label>() INCREMENT_AND_RUN()
   op_timestamp:         INCR_AND_CHECK_GAS<FEE_TIMESTAMP, oog_label>() GUEST_TIMESTAMP<sio_error_label>() INCREMENT_AND_RUN()
   op_number:            INCR_AND_CHECK_GAS<FEE_NUMBER, oog_label>() GUEST_NUMBER<sio_error_label>() INCREMENT_AND_RUN()
-  op_difficulty:        INCR_AND_CHECK_GAS<FEE_DIFFICULTY, oog_label>() GUEST_DIFFICULTY<sio_error_label>() INCREMENT_AND_RUN()
   op_gaslimit:          INCR_AND_CHECK_GAS<FEE_GASLIMIT, oog_label>() GUEST_GASLIMIT<sio_error_label>() INCREMENT_AND_RUN()
   op_gas:               INCR_AND_CHECK_GAS<FEE_GAS, oog_label>() GUEST_GAS<sio_error_label>() INCREMENT_AND_RUN()
 }

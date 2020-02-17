@@ -16,7 +16,7 @@
   op_codesize        op_codecopy        op_gasprice        op_extcodesize     
   op_extcodecopy     op_returndatasize  op_returndatacopy  op_extcodehash     
   op_blockhash       op_coinbase        op_timestamp       op_number          
-  op_difficulty      op_gaslimit        op_chainid         op_invalid         
+  op_invalid         op_gaslimit        op_chainid         op_invalid         
   op_invalid         op_invalid         op_invalid         op_invalid         
   op_invalid         op_invalid         op_invalid         op_invalid         
   op_pop             op_mload           op_mstore          op_mstore8         
