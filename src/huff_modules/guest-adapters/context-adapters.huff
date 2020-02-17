@@ -34,11 +34,6 @@ template <sio_revert_label>
 }
 
 template <sio_revert_label>
-#define macro GUEST_DIFFICULTY = takes(0) returns(1) {
-  READ_DIFFICULTY_RECORD<sio_revert_label>()
-}
-
-template <sio_revert_label>
 #define macro GUEST_TIMESTAMP = takes(0) returns(1) {
   READ_TIMESTAMP_RECORD<sio_revert_label>()
 }
