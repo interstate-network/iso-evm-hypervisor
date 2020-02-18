@@ -1,0 +1,8 @@
+#define macro TEST = takes(0) returns(0) {
+  caller origin eq do_start jumpi 0x20 0x00 return
+  do_start:
+  0x00 0x00 0x00 0x00 callvalue 0x2 mul caller gas staticcall
+  iszero do_revert jumpi
+  0x20 0x00 revert
+  do_revert: 0x20 0x00 revert
+}

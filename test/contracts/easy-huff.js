@@ -1,5 +1,5 @@
 const path = require('path');
-const { parser,	Runtime: { getNewVM, Runtime } } = require('@aztec/huff');
+const { parser,	Runtime: { getNewVM, Runtime } } = require('huff.js');
 const emasm = require('emasm');
 const makeConstructor = require('emasm/macros/make-constructor');
 const addHexPrefix = (s) => s.substr(0, 2) === '0x' ? s : '0x' + s;
