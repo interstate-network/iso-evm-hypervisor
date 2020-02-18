@@ -1,4 +1,4 @@
-const Transaction = require('ethereumjs-tx').Transaction;
+const { StandardTransaction: Transaction } = require('@interstatejs/tx');
 const BN = require('bn.js')
 
 const gas = 6e6;
@@ -22,7 +22,7 @@ const defaultKey = Buffer.from(
 
 /* from must be a private key */
 const getTxOpts = ({ from = defaultKey, to, data, value }) => {
-  const tx = new Transaction({ to, data, value, gas, gasPrice }, { chain: 'mainnet', hardfork: 'petersburg' });
+  const tx = new Transaction({ to, data, value, gas, gasPrice }, { chain: 'mainnet', hardfork: 'istanbul' });
   tx.sign(from);
   tx.getSenderAddress();
   return {
