@@ -73,6 +73,9 @@ template <refund_offset>
 template <offset>
 #define macro COMPARE = { <offset> add calldataload eq }
 
+template <offset, dup_op>
+#define macro COMPARE_GAS = { swap1 MAX_CALL_GAS() <dup_op> <offset> add calldataload eq }
+
 /**
  * @title CALL_FINISH
  * @dev Copies `outsize` bytes from returndata to memory at `out`
@@ -122,9 +125,7 @@ template <sio_revert_label, sm_revert_label>
   COMPARE<C1_OFFSET_VALUE>()            // [ value_match, gas, address, record_body_ptr, in, insize, out, outsize ]
   swap2 dup4                            // [ record_body_ptr, address, gas, value_match, record_body_ptr, in, insize, out, outsize ]
   COMPARE<C1_OFFSET_TARGET>()           // [ address_match, gas, value_match, record_body_ptr, in, insize, out, outsize ]
-  swap1 dup4                            // [ record_body_ptr, gas, address_match, value_match, record_body_ptr, in, insize, out, outsize ]
-  C1_OFFSET_GAS() add calldataload      // [ record_gas, gas, address_match, value_match, record_body_ptr, in, insize, out, outsize ]
-  MAX_CALL_GAS() eq                     // [ gas_match, address_match, value_match, record_body_ptr, in, insize, out, outsize ]
+  COMPARE_GAS<C1_OFFSET_GAS, dup4>()    // [ gas_match, address_match, value_match, record_body_ptr, in, insize, out, outsize ]
   and and                               // [ (gas_match & address_match & value_match), record_body_ptr, in, insize, out, outsize ]
   swap3                                 // [ insize, record_body_ptr, in, (gas_match & address_match & value_match), out, outsize ]
   swap1 swap2                           // [ in, insize, record_body_ptr, (gas_match & address_match & value_match), out, outsize ]
@@ -177,31 +178,6 @@ template <sio_revert_label, sm_revert_label>
   VERIFY_CALL_CALLCODE_BODY<sio_revert_label, sm_revert_label>() // [ success ]
 }
 
-// template <sio_revert_label, sm_revert_label>
-// #define macro VERIFY_STATICCALL_DELEGATECALL_BODY = takes(6) returns(1) {
-//   /** @dev first we compare all the input data on the stack to the access record */
-//   // [ record_body_ptr, gas, address, in, insize, out, outsize ]
-//   swap2 dup3                            // [ record_body_ptr, address, gas, record_body_ptr, in, insize, out, outsize ]
-//   0x40 add calldataload eq              // [ address_match, gas, record_body_ptr, in, insize, out, outsize ]
-//   swap1 dup3                            // [ record_body_ptr, gas, address_match, record_body_ptr, in, insize, out, outsize ]
-  
-//   C1_OFFSET_GAS() add calldataload      // [ record_gas, gas, address_match, record_body_ptr, in, insize, out, outsize ]
-//   MAX_CALL_GAS() eq and                 // [ gas_match, address_match, record_body_ptr, in, insize, out, outsize ]
-
-
-//   swap3                                 // [ insize, record_body_ptr, in, (address_match & gas_match), out, outsize ]
-//   swap1 swap2                           // [ in, insize, record_body_ptr, (address_match & gas_match), out, outsize ]
-//   ADD_GUEST_PTR_OFFSET<sm_revert_label>()
-//   sha3 dup2 0x60 add calldataload eq    // [ calldata_match, record_body_ptr, (address_match & gas_match), out, outsize ]
-//   swap1 swap2 and                       // [ ((address_match & gas_match) & calldata_match), record_body_ptr, out, outsize ]
-//   iszero <sio_revert_label> jumpi       // [ record_body_ptr, out, outsize ]
-//     /** @dev Set up the stack for call_finish */
-//   0x80 add                              // [ success_ptr, out, outsize ]
-//   dup1 0x60 add                         // [ returndata_ptr, success_ptr, out, outsize ]
-//   dup2 0x40 add                         // [ returndatasize_ptr, returndata_ptr, success_ptr, out, outsize ]
-//   CALL_FINISH<sm_revert_label>()        // [ success ]
-// }
-
 template <sio_revert_label, sm_revert_label>
 #define macro VERIFY_DELEGATECALL_BODY = takes(6) returns(1) {
   /** @dev first we compare all the input data on the stack to the access record */
@@ -210,9 +186,10 @@ template <sio_revert_label, sm_revert_label>
   dup1 ADD_CALL_REFUND<C2_OFFSET_REFUND>()
   swap2 dup3                                  // [ record_body_ptr, address, gas, record_body_ptr, in, insize, out, outsize ]
   COMPARE<C2_OFFSET_TARGET>()                 // [ address_match, gas, record_body_ptr, in, insize, out, outsize ]
-  swap1 dup3                                  // [ record_body_ptr, gas, address_match, record_body_ptr, in, insize, out, outsize ]
-  C2_OFFSET_GAS() add calldataload            // [ record_gas, gas, address_match, record_body_ptr, in, insize, out, outsize ]
-  MAX_CALL_GAS() eq and                       // [ (address_match & gas_match), record_body_ptr, in, insize, out, outsize ]
+  // swap1 dup3                                  // [ record_body_ptr, gas, address_match, record_body_ptr, in, insize, out, outsize ]
+  // C2_OFFSET_GAS() add calldataload            // [ record_gas, gas, address_match, record_body_ptr, in, insize, out, outsize ]
+  // MAX_CALL_GAS() eq and                       // [ (address_match & gas_match), record_body_ptr, in, insize, out, outsize ]
+  COMPARE_GAS<C2_OFFSET_GAS, dup3>() and
   swap3                                       // [ insize, record_body_ptr, in, (address_match & gas_match), out, outsize ]
   swap1 swap2                                 // [ in, insize, record_body_ptr, (address_match & gas_match), out, outsize ]
   ADD_GUEST_PTR_OFFSET<sm_revert_label>()
@@ -230,20 +207,22 @@ template <sio_revert_label, sm_revert_label>
 #define macro VERIFY_STATICCALL_BODY = takes(6) returns(1) {
   /** @dev first we compare all the input data on the stack to the access record */
   // [ record_body_ptr, gas, address, in, insize, out, outsize ]
-  dup1 calldataload ADD_GAS() // no offset for gas
   swap2 dup3                                  // [ record_body_ptr, address, gas, record_body_ptr, in, insize, out, outsize ]
   COMPARE<C3_OFFSET_TARGET>()                 // [ address_match, gas, record_body_ptr, in, insize, out, outsize ]
-  swap1 dup3                                  // [ record_body_ptr, gas, address_match, record_body_ptr, in, insize, out, outsize ]
-  C3_OFFSET_GAS() add calldataload            // [ record_gas, gas, address_match, record_body_ptr, in, insize, out, outsize ]
-  MAX_CALL_GAS() eq and                       // [ (address_match & gas_match), record_body_ptr, in, insize, out, outsize ]
+  // swap1 dup3                                  // [ record_body_ptr, gas, address_match, record_body_ptr, in, insize, out, outsize ]
+  // C3_OFFSET_GAS() add calldataload            // [ record_gas, gas, address_match, record_body_ptr, in, insize, out, outsize ]
+  // MAX_CALL_GAS() eq and                       // [ (address_match & gas_match), record_body_ptr, in, insize, out, outsize ]
+  COMPARE_GAS<C3_OFFSET_GAS, dup3>() and         // [ (address_match & gas_match), record_body_ptr, in, insize, out, outsize ]
   swap3                                       // [ insize, record_body_ptr, in, (address_match & gas_match), out, outsize ]
   swap1 swap2                                 // [ in, insize, record_body_ptr, (address_match & gas_match), out, outsize ]
   ADD_GUEST_PTR_OFFSET<sm_revert_label>()
   sha3 dup2 COMPARE<C3_OFFSET_CALLDATAHASH>() // [ calldata_match, record_body_ptr, (address_match & gas_match), out, outsize ]
   swap1 swap2 and                             // [ ((address_match & gas_match) & calldata_match), record_body_ptr, out, outsize ]
   iszero <sio_revert_label> jumpi             // [ record_body_ptr, out, outsize ]
+  dup1 calldataload ADD_GAS()                 // no offset for gas
     /** @dev Set up the stack for call_finish */
   C3_OFFSET_SUCCESS() add                     // [ success_ptr, out, outsize ]
+  stop
   dup1 0x60 add                               // [ returndata_ptr, success_ptr, out, outsize ]
   dup2 0x40 add                               // [ returndatasize_ptr, returndata_ptr, success_ptr, out, outsize ]
   CALL_FINISH<sm_revert_label>()              // [ success ]
