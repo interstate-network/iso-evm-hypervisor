@@ -1,4 +1,4 @@
-const VM = require('interstate-js-vm').default;
+const VM = require('@interstatejs/vm').default;
 const getTxOpts = require('./tx');
 const hypervisorMacro = require('../src/compile');
 
