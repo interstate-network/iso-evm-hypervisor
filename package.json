@@ -1,5 +1,5 @@
 {
-  "name": "huff-hypervisor",
+  "name": "@interstatejs/iso-hypervisor",
   "version": "1.0.0",
   "description": "",
   "main": "compile-huff.js",
@@ -20,7 +20,8 @@
     "easy-solc": "^1.0.1",
     "emasm": "^0.1.7",
     "ethereumjs-util": "^6.2.0",
-    "interstate-js-vm": "git+ssh://git@github.com/interstate-network/interstate-js-vm.git",
+    "@interstatejs/tx": "^2.1.2",
+    "@interstatejs/vm": "^4.1.0",
     "kool-makerpccall": "^0.1.1",
     "table": "^5.4.6",
     "util.promisify": "^1.0.0",
