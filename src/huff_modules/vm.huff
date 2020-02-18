@@ -66,11 +66,11 @@ template <sio_error_label, safemath_error_label, oog_label>
   op_chainid:             INCR_AND_CHECK_GAS<FEE_CHAINID, oog_label>() GUEST_CHAINID<sio_error_label>() INCREMENT_AND_RUN()
 }
 
-template <safemath_error_label, return_status_or_data_error, oog_label>
+template <safemath_error_label, return_status_or_data_error, exit_gas_label>
 #define macro EXIT_OPERATIONS = takes(0) returns(0) {
-  op_return:              INCR_AND_CHECK_GAS<FEE_RETURN, oog_label>() GUEST_RETURN<safemath_error_label, return_status_or_data_error>()
-  op_revert:              INCR_AND_CHECK_GAS<FEE_REVERT, oog_label>() GUEST_REVERT<safemath_error_label, return_status_or_data_error>()
-  op_stop:                INCR_AND_CHECK_GAS<FEE_STOP, oog_label>() VERIFY_ACCESS_TX_STOP<return_status_or_data_error>()
+  op_return:              CHECK_EXIT_GAS<exit_gas_label>() GUEST_RETURN<safemath_error_label, return_status_or_data_error>()
+  op_revert:              CHECK_EXIT_GAS<exit_gas_label>() GUEST_REVERT<safemath_error_label, return_status_or_data_error>()
+  op_stop:                CHECK_EXIT_GAS<exit_gas_label>() VERIFY_ACCESS_TX_STOP<return_status_or_data_error>()
 }
 
 template <safemath_error_label>
@@ -101,7 +101,7 @@ template <sio_error_label, oog_label>
   op_timestamp:         INCR_AND_CHECK_GAS<FEE_TIMESTAMP, oog_label>() GUEST_TIMESTAMP<sio_error_label>() INCREMENT_AND_RUN()
   op_number:            INCR_AND_CHECK_GAS<FEE_NUMBER, oog_label>() GUEST_NUMBER<sio_error_label>() INCREMENT_AND_RUN()
   op_gaslimit:          INCR_AND_CHECK_GAS<FEE_GASLIMIT, oog_label>() GUEST_GASLIMIT<sio_error_label>() INCREMENT_AND_RUN()
-  op_gas:               INCR_AND_CHECK_GAS<FEE_GAS, oog_label>() GUEST_GAS<sio_error_label>() INCREMENT_AND_RUN()
+  op_gas:               INCR_GAS<FEE_GAS>() GUEST_GAS<sio_error_label>() INCREMENT_AND_RUN()
 }
 
 template <execute_jump_label, oog_label>
@@ -197,7 +197,7 @@ template <safemath_error_label>
 }
 
 
-template <sio_error_label, safemath_error_label, execute_jump_label, return_status_or_data_error, oog_label>
+template <sio_error_label, safemath_error_label, execute_jump_label, return_status_or_data_error, oog_label, exit_gas_label>
 #define macro VM__MAIN = takes(0) returns(0) {
   MATH_OPERATIONS()
   BIT_OPERATIONS<safemath_error_label>()
@@ -208,7 +208,7 @@ template <sio_error_label, safemath_error_label, execute_jump_label, return_stat
   STORAGE_OPERATIONS<sio_error_label, oog_label>()
   BLOCK_OPERATIONS<sio_error_label, oog_label>()
   VM_OPERATIONS<execute_jump_label, oog_label>()
-  EXIT_OPERATIONS<safemath_error_label, return_status_or_data_error, oog_label>()
+  EXIT_OPERATIONS<safemath_error_label, return_status_or_data_error, exit_gas_label>()
   PUSH_OPERATIONS()
   DUP_OPERATIONS()
   SWAP_OPERATIONS()
