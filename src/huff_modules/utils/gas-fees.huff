@@ -54,7 +54,7 @@
 #define macro FEE_MSTORE = takes(0) returns(1) { 0x3 }
 #define macro FEE_MSTORE8 = takes(0) returns(1) { 0x3 }
 #define macro FEE_SLOAD = takes(0) returns(1) { 0x320 }
-#define macro FEE_SSTORE = takes(0) returns(1) { 0x0 }
+#define macro FEE_SSTORE = takes(0) returns(1) { 0x4e20 }
 #define macro FEE_JUMP = takes(0) returns(1) { 0x8 }
 #define macro FEE_JUMPI = takes(0) returns(1) { 0xa }
 #define macro FEE_PC = takes(0) returns(1) { 0x2 }
