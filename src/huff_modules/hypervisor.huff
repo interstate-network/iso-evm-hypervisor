@@ -22,6 +22,13 @@
   0x60 0x00 revert
 }
 
+#define macro GAS_USED_ERROR = takes(0) returns(0) {
+  0xffaa 0x00 mstore
+  LOAD<VIRTUAL_GAS_USED>() 0x20 mstore
+  CDLOAD<GAS_USED_CDPTR>() 0x40 mstore
+  0x60 0x00 revert
+}
+
 template <oog_error_label>
 #define macro VERIFY_OOG = takes(0) returns(0) {
   GET_GAS_AVAILABLE() GET_GAS_USED() eq // [ gas_used_match ]
@@ -38,21 +45,11 @@ template <oog_error_label>
   oog_error: 0xea3b mstore 0x20 0x00 revert
   safemath_error: 0x1337 0x00 mstore 0x20 0x00 revert
   return_status_or_data_error: 0x2020ffff 0x00 mstore 0x20 0x00 revert
+  exit_gas_error: GAS_USED_ERROR()
   execute_jump: EXECUTE_JUMP()
   do_start:
   PREPARE_HYPERVISOR()
   GET_PC() RUN_NEXT_INSTRUCTION()
-  CHECK_GAS<verify_oog_label>()
-  VM__MAIN<sio_error, safemath_error, execute_jump, return_status_or_data_error, verify_oog_label>()
+  VM__MAIN<sio_error, safemath_error, execute_jump, return_status_or_data_error, verify_oog_label, exit_gas_error>()
+  CHECK_EXIT_GAS<verify_oog_label>()
 }
-
-/* module.exports = (ary) => [
-  'bytes:runtime-code:size',
-	'dup1',
-	'bytes:runtime-code:ptr',
-	'0x0',
-	'codecopy',
-	'0x0',
-	'return',
-	[ 'bytes:runtime-code', [ emasm(ary) ] ]
-]; */
